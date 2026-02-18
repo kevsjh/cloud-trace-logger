@@ -1,6 +1,6 @@
 {
   "name": "@kevsjh/cloud-trace-logger",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "description": "Structured JSON logger with Google Cloud Trace correlation and Cloud Error Reporting support",
   "author": "kevsjh",
   "license": "MIT",
