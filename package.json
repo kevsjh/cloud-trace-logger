@@ -1,0 +1,41 @@
+{
+  "name": "@kevsjh/cloud-trace-logger",
+  "version": "0.1.0",
+  "description": "Structured JSON logger with Google Cloud Trace correlation and Cloud Error Reporting support",
+  "author": "kevsjh",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kevsjh/cloud-trace-logger"
+  },
+  "keywords": [
+    "google-cloud",
+    "cloud-trace",
+    "structured-logging",
+    "cloud-run",
+    "cloud-error-reporting"
+  ],
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "dev": "tsc -w",
+    "prepublishOnly": "bun run clean && bun run build"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.24",
+    "typescript": "^5.0.0"
+  }
+}
