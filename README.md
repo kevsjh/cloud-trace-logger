@@ -43,7 +43,15 @@ try {
 }
 ```
 
-In production, errors are annotated with the Cloud Error Reporting `@type` so they appear in the Error Reporting console.
+In production, errors are annotated with the Cloud Error Reporting `@type`, `stack_trace`, and `serviceContext` fields so they appear in the Error Reporting console.
+
+On Cloud Run, `serviceContext` is auto-detected from the `K_SERVICE` and `K_REVISION` environment variables. On other platforms, pass it explicitly:
+
+```ts
+const log = createCloudTraceLogger({
+  serviceContext: { service: "my-api", version: "1.0.0" },
+});
+```
 
 ### With structured data
 
@@ -67,6 +75,10 @@ const log = createCloudTraceLogger({
   // Add Cloud Error Reporting @type on error-class severities.
   // Defaults to true when NODE_ENV=production.
   errorReporting: true,
+
+  // Service context for Error Reporting.
+  // Auto-detected from K_SERVICE/K_REVISION on Cloud Run.
+  serviceContext: { service: "my-api", version: "1.0.0" },
 });
 ```
 
@@ -94,7 +106,12 @@ Each call writes a single JSON line to stdout via `console.log`, which Cloud Log
     "errorStack": "Error: connection refused\n    at ...",
     "errorName": "Error"
   },
-  "@type": "type.googleapis.com/google.devtools.clouderrorreporting.v1beta1.ReportedErrorEvent"
+  "@type": "type.googleapis.com/google.devtools.clouderrorreporting.v1beta1.ReportedErrorEvent",
+  "stack_trace": "Error: connection refused\n    at ...",
+  "serviceContext": {
+    "service": "my-api",
+    "version": "my-api-00001-abc"
+  }
 }
 ```
 

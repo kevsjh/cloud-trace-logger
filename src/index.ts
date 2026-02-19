@@ -12,6 +12,11 @@ export type LoggableRequest = {
   headers: Record<string, string | string[] | undefined>;
 };
 
+export type ServiceContext = {
+  service: string;
+  version?: string;
+};
+
 export type LoggerOptions = {
   /** Google Cloud project ID. Falls back to PROJECT_ID then GOOGLE_CLOUD_PROJECT env vars. */
   projectId?: string;
@@ -19,6 +24,8 @@ export type LoggerOptions = {
   suppressDebug?: boolean;
   /** Add Cloud Error Reporting @type on error-class severities. Defaults to true when NODE_ENV === "production". */
   errorReporting?: boolean;
+  /** Service context for Cloud Error Reporting. Auto-detected from K_SERVICE/K_REVISION env vars on Cloud Run if not provided. */
+  serviceContext?: ServiceContext;
 };
 
 export type LogOptions = {
@@ -43,6 +50,15 @@ export function createCloudTraceLogger(options: LoggerOptions = {}) {
   const errorReporting =
     options.errorReporting ?? process.env.NODE_ENV === "production";
 
+  const serviceContext: ServiceContext | undefined =
+    options.serviceContext ??
+    (process.env.K_SERVICE
+      ? {
+          service: process.env.K_SERVICE,
+          ...(process.env.K_REVISION && { version: process.env.K_REVISION }),
+        }
+      : undefined);
+
   return function log({
     message,
     req,
@@ -51,8 +67,7 @@ export function createCloudTraceLogger(options: LoggerOptions = {}) {
     error,
   }: LogOptions): void {
     try {
-      const normalizedSeverity =
-        severity === "WARN" ? "WARNING" : severity;
+      const normalizedSeverity = severity === "WARN" ? "WARNING" : severity;
 
       if (suppressDebug && normalizedSeverity === "DEBUG") {
         return;
@@ -96,17 +111,26 @@ export function createCloudTraceLogger(options: LoggerOptions = {}) {
               }
             : { errorValue: String(error) };
 
+      const isErrorReport =
+        errorReporting && ERROR_SEVERITIES.includes(normalizedSeverity);
+
+      const stackTrace =
+        isErrorReport && error instanceof Error && error.stack
+          ? error.stack
+          : undefined;
+
       const entry = {
         ...(trace && { "logging.googleapis.com/trace": trace }),
         ...dataFields,
         ...(errorFields && { error: errorFields }),
         severity: normalizedSeverity,
         message,
-        ...(errorReporting &&
-          ERROR_SEVERITIES.includes(normalizedSeverity) && {
-            "@type":
-              "type.googleapis.com/google.devtools.clouderrorreporting.v1beta1.ReportedErrorEvent",
-          }),
+        ...(isErrorReport && {
+          "@type":
+            "type.googleapis.com/google.devtools.clouderrorreporting.v1beta1.ReportedErrorEvent",
+          ...(stackTrace && { stack_trace: stackTrace }),
+          ...(serviceContext && { serviceContext }),
+        }),
       };
 
       console.log(JSON.stringify(entry));
@@ -122,4 +146,3 @@ export function createCloudTraceLogger(options: LoggerOptions = {}) {
     }
   };
 }
-
